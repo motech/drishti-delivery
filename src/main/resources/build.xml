@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="drishti-delivery-config" default="setup.box">
+    <typedef file="ant/config-macros.xml"/>
+    <typedef file="org/motechproject/build/deployMacroDefs.xml"/>
+    <typedef file="org/motechproject/build/operationMacroDefs.xml"/>
+
+    <target name="deploy.drishti.from.nexus.and.reset.db">
+        <property file="${basedir}/properties/${env}/deploy.properties"/>
+        <stop.tomcat
+                tomcat.home="${tomcat.home}"
+                tomcat.port="${tomcat.port}"/>
+
+        <drop.couch.db
+                couch.db.server="${couch.db.server}"
+                couch.db.port="${couch.db.port}"
+                db.name="${db.name}"/>
+
+        <download.app.from.remote
+                app.name="${app.name}"
+                remote.location="http://${nexus.server}:${nexus.port}/content/repositories/snapshots/org/ei/drishti/drishti-web/${nexus.release.version}/drishti-web-${nexus.release.version}.war"
+                download.dir="${download.dir}"/>
+
+        <copy.app.war.to.tomcat
+                tomcat.home="${tomcat.home}"
+                app.name="${app.name}"
+                download.dir="${download.dir}"/>
+
+              <!--
+        <updateDatabase
+                changeLogFile="${basedir}/sql/main-change-log.xml"
+                driver="${jdbc.driver}"
+                url="${jdbc.url}"
+                username="${jdbc.username}"
+                password="${jdbc.password}"
+                dropFirst="true"
+                defaultSchemaName="${postgres.schema.name}"
+                classpathref="liquibaseclasspath"
+                />
+                -->
+
+        <start.tomcat
+                tomcat.home="${tomcat.home}"
+                tomcat.port="${tomcat.port}"/>
+
+        <copy.over.properties/>
+
+        <set.nexus.version
+                tomcat.home="${tomcat.home}"
+                app.name="${app.name}"
+                nexus.server="${nexus.server}"
+                nexus.release.version="${nexus.release.version}"/>
+
+        <restart.tomcat
+                tomcat.home="${tomcat.home}"
+                tomcat.port="${tomcat.port}"/>
+
+    </target>
+
+    <target name="deploy.drishti.from.nexus">
+        <property file="${basedir}/properties/${env}/deploy.properties"/>
+        <stop.tomcat
+                tomcat.home="${tomcat.home}"
+                tomcat.port="${tomcat.port}"/>
+
+        <download.app.from.remote
+                app.name="${app.name}"
+                remote.location="http://${nexus.server}:${nexus.port}/content/repositories/releases/org/ei/drishti/drishti-web/${nexus.release.version}/drishti-web-${nexus.release.version}.war"
+                download.dir="${download.dir}"/>
+
+        <copy.app.war.to.tomcat
+                tomcat.home="${tomcat.home}"
+                app.name="${app.name}"
+                download.dir="${download.dir}"/>
+
+        <start.tomcat
+                tomcat.home="${tomcat.home}"
+                tomcat.port="${tomcat.port}"/>
+
+        <copy.over.properties/>
+
+        <set.nexus.version
+                tomcat.home="${tomcat.home}"
+                app.name="${app.name}"
+                nexus.server="${nexus.server}"
+                nexus.release.version="${nexus.release.version}"/>
+
+        <restart.tomcat
+                tomcat.home="${tomcat.home}"
+                tomcat.port="${tomcat.port}"/>
+
+    </target>
+
+    <target name="restore.couch.and.sql.dbs">
+        <echo message="Trying to restore couchdb and sql DBs on Drishti"/>
+        <restore.db
+                tomcat.home="${tomcat.home}"
+                tomcat.port="${tomcat.port}"
+                couch.source="${couch.source}"
+                couch.destination="${couch.destination}"
+                mysql.source="${mysql.source}"
+                mysql.destination="${mysql.destination}"/>
+    </target>
+
+    <macrodef name="copy.over.properties">
+        <sequential>
+            <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
+                  file="${basedir}/properties/${env}/couchdb.properties"/>
+            <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
+                  file="${basedir}/properties/${env}/log4j.xml"/>
+            <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
+                  file="${basedir}/properties/${env}/activemq.properties"/>
+            <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
+                  file="${basedir}/properties/${env}/quartz.properties"/>
+            <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
+                  file="${basedir}/properties/${env}/osgi.properties"/>
+        </sequential>
+    </macrodef>
+
+</project>
