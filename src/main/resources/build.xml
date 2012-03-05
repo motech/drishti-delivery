@@ -25,6 +25,13 @@
                 app.name="${app.name}"
                 download.dir="${download.dir}"/>
 
+        <recreate.quartz.schema
+                server="${mysql.server}"
+                port="${mysql.port}"
+                schema="${mysql.db}"
+                username="${mysql.user}"
+                password="${mysql.password}"/>
+
               <!--
         <updateDatabase
                 changeLogFile="${basedir}/sql/main-change-log.xml"
@@ -100,6 +107,35 @@
                 mysql.source="${mysql.source}"
                 mysql.destination="${mysql.destination}"/>
     </target>
+
+    <macrodef name="recreate.quartz.schema">
+      <attribute name="server"/>
+      <attribute name="port"/>
+      <attribute name="schema"/>
+      <attribute name="username"/>
+      <attribute name="password"/>
+      <sequential>
+        <echo message="Quartz schema loading: START"/>
+        <path id="dependencies">
+          <fileset dir="."/>
+        </path>
+        <sql driver="com.mysql.jdbc.Driver"
+          url="jdbc:mysql://@{server}:@{port}/@{schema}?autoReconnect=true"
+          userid="@{username}"
+          classpathref="dependencies"
+          password="@{password}">
+          drop database @{schema};
+          create database @{schema};
+        </sql>
+        <sql driver="com.mysql.jdbc.Driver"
+          url="jdbc:mysql://@{server}:@{port}/@{schema}?autoReconnect=true"
+          userid="@{username}"
+          classpathref="dependencies"
+          password="@{password}"
+          src="sql/tables_motech_quartz.sql"/>
+        <echo message="Quartz schema loading: END"/>
+      </sequential>
+    </macrodef>
 
     <macrodef name="copy.over.properties">
         <sequential>
