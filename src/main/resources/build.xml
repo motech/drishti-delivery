@@ -1,8 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="drishti-delivery-config" default="setup.box">
+<project name="drishti-delivery-config" default="deploy.drishti.from.nexus">
     <typedef file="ant/config-macros.xml"/>
     <typedef file="org/motechproject/build/deployMacroDefs.xml"/>
     <typedef file="org/motechproject/build/operationMacroDefs.xml"/>
+
+    <target name="deploy.drishti.from.nexus">
+        <property file="${basedir}/properties/${env}/deploy.properties"/>
+        <stop.tomcat
+                tomcat.home="${tomcat.home}"
+                tomcat.port="${tomcat.port}"/>
+
+        <call target="deploy.drishti.app"/>
+
+        <start.tomcat
+                tomcat.home="${tomcat.home}"
+                tomcat.port="${tomcat.port}"/>
+
+    </target>
 
     <target name="deploy.drishti.from.nexus.and.reset.db">
         <property file="${basedir}/properties/${env}/deploy.properties"/>
@@ -15,6 +29,22 @@
                 couch.db.port="${couch.db.port}"
                 db.name="${db.name}"/>
 
+        <recreate.quartz.schema
+                server="${mysql.server}"
+                port="${mysql.port}"
+                schema="${mysql.db}"
+                username="${mysql.user}"
+                password="${mysql.password}"/>
+
+        <call target="deploy.drishti.app"/>
+
+        <start.tomcat
+                tomcat.home="${tomcat.home}"
+                tomcat.port="${tomcat.port}"/>
+    </target>
+
+    <target name="deploy.drishti.app">
+        <property file="${basedir}/properties/${env}/deploy.properties"/>
         <download.app.from.remote
                 app.name="${app.name}"
                 remote.location="http://${nexus.server}:${nexus.port}/content/repositories/snapshots/org/ei/drishti/drishti-web/${nexus.release.version}/drishti-web-${nexus.release.version}.war"
@@ -25,30 +55,6 @@
                 app.name="${app.name}"
                 download.dir="${download.dir}"/>
 
-        <recreate.quartz.schema
-                server="${mysql.server}"
-                port="${mysql.port}"
-                schema="${mysql.db}"
-                username="${mysql.user}"
-                password="${mysql.password}"/>
-
-              <!--
-        <updateDatabase
-                changeLogFile="${basedir}/sql/main-change-log.xml"
-                driver="${jdbc.driver}"
-                url="${jdbc.url}"
-                username="${jdbc.username}"
-                password="${jdbc.password}"
-                dropFirst="true"
-                defaultSchemaName="${postgres.schema.name}"
-                classpathref="liquibaseclasspath"
-                />
-                -->
-
-        <start.tomcat
-                tomcat.home="${tomcat.home}"
-                tomcat.port="${tomcat.port}"/>
-
         <copy.over.properties/>
 
         <set.nexus.version
@@ -56,56 +62,6 @@
                 app.name="${app.name}"
                 nexus.server="${nexus.server}"
                 nexus.release.version="${nexus.release.version}"/>
-
-        <restart.tomcat
-                tomcat.home="${tomcat.home}"
-                tomcat.port="${tomcat.port}"/>
-
-    </target>
-
-    <target name="deploy.drishti.from.nexus">
-        <property file="${basedir}/properties/${env}/deploy.properties"/>
-        <stop.tomcat
-                tomcat.home="${tomcat.home}"
-                tomcat.port="${tomcat.port}"/>
-
-        <download.app.from.remote
-                app.name="${app.name}"
-                remote.location="http://${nexus.server}:${nexus.port}/content/repositories/releases/org/ei/drishti/drishti-web/${nexus.release.version}/drishti-web-${nexus.release.version}.war"
-                download.dir="${download.dir}"/>
-
-        <copy.app.war.to.tomcat
-                tomcat.home="${tomcat.home}"
-                app.name="${app.name}"
-                download.dir="${download.dir}"/>
-
-        <start.tomcat
-                tomcat.home="${tomcat.home}"
-                tomcat.port="${tomcat.port}"/>
-
-        <copy.over.properties/>
-
-        <set.nexus.version
-                tomcat.home="${tomcat.home}"
-                app.name="${app.name}"
-                nexus.server="${nexus.server}"
-                nexus.release.version="${nexus.release.version}"/>
-
-        <restart.tomcat
-                tomcat.home="${tomcat.home}"
-                tomcat.port="${tomcat.port}"/>
-
-    </target>
-
-    <target name="restore.couch.and.sql.dbs">
-        <echo message="Trying to restore couchdb and sql DBs on Drishti"/>
-        <restore.db
-                tomcat.home="${tomcat.home}"
-                tomcat.port="${tomcat.port}"
-                couch.source="${couch.source}"
-                couch.destination="${couch.destination}"
-                mysql.source="${mysql.source}"
-                mysql.destination="${mysql.destination}"/>
     </target>
 
     <macrodef name="recreate.quartz.schema">
