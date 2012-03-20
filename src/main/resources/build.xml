@@ -63,8 +63,6 @@
 
   <macrodef name="after.deploy">
     <sequential>
-      <echo message="Giving tomcat 10 seconds to unpack the WAR file ..."/>
-      <sleep seconds="10"/>
       <copy.over.properties/>
 
       <set.nexus.version
@@ -72,6 +70,10 @@
         app.name="${app.name}"
         nexus.server="${nexus.server}"
         nexus.release.version="${nexus.release.version}"/>
+
+      <restart.tomcat
+        tomcat.home="${tomcat.home}"
+        tomcat.port="${tomcat.port}"/>
     </sequential>
   </macrodef>
 
