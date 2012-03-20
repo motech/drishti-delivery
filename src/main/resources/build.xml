@@ -1,115 +1,124 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="drishti-delivery-config" default="deploy.drishti.from.nexus">
-    <typedef file="ant/config-macros.xml"/>
-    <typedef file="org/motechproject/build/deployMacroDefs.xml"/>
-    <typedef file="org/motechproject/build/operationMacroDefs.xml"/>
+  <typedef file="ant/config-macros.xml"/>
+  <typedef file="org/motechproject/build/deployMacroDefs.xml"/>
+  <typedef file="org/motechproject/build/operationMacroDefs.xml"/>
 
-    <target name="deploy.drishti.from.nexus">
-        <property file="${basedir}/properties/${env}/deploy.properties"/>
-        <stop.tomcat
-                tomcat.home="${tomcat.home}"
-                tomcat.port="${tomcat.port}"/>
+  <target name="deploy.drishti.from.nexus">
+    <property file="${basedir}/properties/${env}/deploy.properties"/>
+    <stop.tomcat
+      tomcat.home="${tomcat.home}"
+      tomcat.port="${tomcat.port}"/>
 
-        <deploy.drishti.app/>
+    <deploy.drishti.app/>
 
-        <start.tomcat
-                tomcat.home="${tomcat.home}"
-                tomcat.port="${tomcat.port}"/>
+    <start.tomcat
+      tomcat.home="${tomcat.home}"
+      tomcat.port="${tomcat.port}"/>
 
-    </target>
+    <after.deploy/>
+  </target>
 
-    <target name="deploy.drishti.from.nexus.and.reset.db">
-        <property file="${basedir}/properties/${env}/deploy.properties"/>
-        <stop.tomcat
-                tomcat.home="${tomcat.home}"
-                tomcat.port="${tomcat.port}"/>
+  <target name="deploy.drishti.from.nexus.and.reset.db">
+    <property file="${basedir}/properties/${env}/deploy.properties"/>
+    <stop.tomcat
+      tomcat.home="${tomcat.home}"
+      tomcat.port="${tomcat.port}"/>
 
-        <drop.couch.db
-                couch.db.server="${couch.db.server}"
-                couch.db.port="${couch.db.port}"
-                db.name="${db.name}"/>
+    <drop.couch.db couch.db.server="${couch.db.server}" couch.db.port="${couch.db.port}" db.name="${db.name}"/>
+    <drop.couch.db couch.db.server="${couch.db.server}" couch.db.port="${couch.db.port}" db.name="motech-scheduletracking"/>
+    <drop.couch.db couch.db.server="${couch.db.server}" couch.db.port="${couch.db.port}" db.name="commcare"/>
 
-        <recreate.quartz.schema
-                server="${mysql.server}"
-                port="${mysql.port}"
-                schema="${mysql.db}"
-                username="${mysql.user}"
-                password="${mysql.password}"/>
+    <recreate.quartz.schema
+      server="${mysql.server}"
+      port="${mysql.port}"
+      schema="${mysql.db}"
+      username="${mysql.user}"
+      password="${mysql.password}"/>
 
-        <deploy.drishti.app/>
+    <deploy.drishti.app/>
 
-        <start.tomcat
-                tomcat.home="${tomcat.home}"
-                tomcat.port="${tomcat.port}"/>
-    </target>
+    <start.tomcat
+      tomcat.home="${tomcat.home}"
+      tomcat.port="${tomcat.port}"/>
 
-    <macrodef name="deploy.drishti.app">
-      <sequential>
-        <property file="${basedir}/properties/${env}/deploy.properties"/>
-        <download.app.from.remote
-                app.name="${app.name}"
-                remote.location="http://${nexus.server}:${nexus.port}/content/repositories/snapshots/org/ei/drishti/drishti-web/${nexus.release.version}/drishti-web-${nexus.release.version}.war"
-                download.dir="${download.dir}"/>
+    <after.deploy/>
+  </target>
 
-        <copy.app.war.to.tomcat
-                tomcat.home="${tomcat.home}"
-                app.name="${app.name}"
-                download.dir="${download.dir}"/>
+  <macrodef name="deploy.drishti.app">
+    <sequential>
+      <property file="${basedir}/properties/${env}/deploy.properties"/>
+      <download.app.from.remote
+        app.name="${app.name}"
+        remote.location="http://${nexus.server}:${nexus.port}/content/repositories/snapshots/org/ei/drishti/drishti-web/${nexus.release.version}/drishti-web-${nexus.release.version}.war"
+        download.dir="${download.dir}"/>
 
-        <copy.over.properties/>
+      <copy.app.war.to.tomcat
+        tomcat.home="${tomcat.home}"
+        app.name="${app.name}"
+        download.dir="${download.dir}"/>
 
-        <set.nexus.version
-                tomcat.home="${tomcat.home}"
-                app.name="${app.name}"
-                nexus.server="${nexus.server}"
-                nexus.release.version="${nexus.release.version}"/>
-      </sequential>
-    </macrodef>
+    </sequential>
+  </macrodef>
 
-    <macrodef name="recreate.quartz.schema">
-      <attribute name="server"/>
-      <attribute name="port"/>
-      <attribute name="schema"/>
-      <attribute name="username"/>
-      <attribute name="password"/>
-      <sequential>
-        <echo message="Quartz schema loading: START"/>
-        <path id="dependencies">
-          <fileset dir="."/>
-        </path>
-        <sql driver="com.mysql.jdbc.Driver"
-          url="jdbc:mysql://@{server}:@{port}/@{schema}?autoReconnect=true"
-          userid="@{username}"
-          classpathref="dependencies"
-          password="@{password}">
-          drop database @{schema};
-          create database @{schema};
-        </sql>
-        <sql driver="com.mysql.jdbc.Driver"
-          url="jdbc:mysql://@{server}:@{port}/@{schema}?autoReconnect=true"
-          userid="@{username}"
-          classpathref="dependencies"
-          password="@{password}"
-          src="sql/tables_motech_quartz.sql"/>
-        <echo message="Quartz schema loading: END"/>
-      </sequential>
-    </macrodef>
+  <macrodef name="after.deploy">
+    <sequential>
+      <echo message="Giving tomcat 10 seconds to unpack the WAR file ..."/>
+      <sleep seconds="10"/>
+      <copy.over.properties/>
 
-    <macrodef name="copy.over.properties">
-        <sequential>
-            <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
-                  file="${basedir}/properties/${env}/couchdb.properties"/>
-            <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
-                  file="${basedir}/properties/${env}/log4j.xml"/>
-            <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
-                  file="${basedir}/properties/${env}/activemq.properties"/>
-            <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
-                  file="${basedir}/properties/${env}/quartz.properties"/>
-            <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
-                  file="${basedir}/properties/${env}/osgi.properties"/>
-            <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
-                  file="${basedir}/properties/${env}/drishti.properties"/>
-        </sequential>
-    </macrodef>
+      <set.nexus.version
+        tomcat.home="${tomcat.home}"
+        app.name="${app.name}"
+        nexus.server="${nexus.server}"
+        nexus.release.version="${nexus.release.version}"/>
+    </sequential>
+  </macrodef>
+
+  <macrodef name="recreate.quartz.schema">
+    <attribute name="server"/>
+    <attribute name="port"/>
+    <attribute name="schema"/>
+    <attribute name="username"/>
+    <attribute name="password"/>
+    <sequential>
+      <echo message="Quartz schema loading: START"/>
+      <path id="dependencies">
+        <fileset dir="."/>
+      </path>
+      <sql driver="com.mysql.jdbc.Driver"
+        url="jdbc:mysql://@{server}:@{port}/@{schema}?autoReconnect=true"
+        userid="@{username}"
+        classpathref="dependencies"
+        password="@{password}">
+        drop database @{schema};
+        create database @{schema};
+      </sql>
+      <sql driver="com.mysql.jdbc.Driver"
+        url="jdbc:mysql://@{server}:@{port}/@{schema}?autoReconnect=true"
+        userid="@{username}"
+        classpathref="dependencies"
+        password="@{password}"
+        src="sql/tables_motech_quartz.sql"/>
+      <echo message="Quartz schema loading: END"/>
+    </sequential>
+  </macrodef>
+
+  <macrodef name="copy.over.properties">
+    <sequential>
+      <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
+        file="${basedir}/properties/${env}/couchdb.properties"/>
+      <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
+        file="${basedir}/properties/${env}/log4j.xml"/>
+      <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
+        file="${basedir}/properties/${env}/activemq.properties"/>
+      <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
+        file="${basedir}/properties/${env}/quartz.properties"/>
+      <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
+        file="${basedir}/properties/${env}/osgi.properties"/>
+      <copy overwrite="true" todir="${tomcat.home}/webapps/${app.name}/WEB-INF/classes"
+        file="${basedir}/properties/${env}/drishti.properties"/>
+    </sequential>
+  </macrodef>
 
 </project>
