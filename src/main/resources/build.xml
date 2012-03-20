@@ -10,7 +10,7 @@
                 tomcat.home="${tomcat.home}"
                 tomcat.port="${tomcat.port}"/>
 
-        <call target="deploy.drishti.app"/>
+        <deploy.drishti.app/>
 
         <start.tomcat
                 tomcat.home="${tomcat.home}"
@@ -36,14 +36,15 @@
                 username="${mysql.user}"
                 password="${mysql.password}"/>
 
-        <call target="deploy.drishti.app"/>
+        <deploy.drishti.app/>
 
         <start.tomcat
                 tomcat.home="${tomcat.home}"
                 tomcat.port="${tomcat.port}"/>
     </target>
 
-    <target name="deploy.drishti.app">
+    <macrodef name="deploy.drishti.app">
+      <sequential>
         <property file="${basedir}/properties/${env}/deploy.properties"/>
         <download.app.from.remote
                 app.name="${app.name}"
@@ -62,7 +63,8 @@
                 app.name="${app.name}"
                 nexus.server="${nexus.server}"
                 nexus.release.version="${nexus.release.version}"/>
-    </target>
+      </sequential>
+    </macrodef>
 
     <macrodef name="recreate.quartz.schema">
       <attribute name="server"/>
